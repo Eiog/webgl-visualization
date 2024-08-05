@@ -20,7 +20,7 @@ import ServerUrlCopy from 'vite-plugin-url-copy'
 import { analyzer } from 'vite-bundle-analyzer'
 import Sitemap from 'vite-plugin-sitemap'
 import { VitePluginMock } from './plugin'
-import { VitePluginAutoImport, VitePluginComponents, VitePluginI18n, VitePluginMarkdown, VitePluginPWA } from './config'
+import { VitePluginAutoImport, VitePluginComponents, VitePluginI18n, VitePluginPWA } from './config'
 // https://vitejs.dev/config/
 export default defineConfig(({ command, mode }) => {
   const { VITE_DEV_PORT, VITE_API_BASE_PREFIX, VITE_API_BASE_URL, VITE_BASE, BUILD_ENV } = loadEnv(mode, process.cwd(), '')
@@ -37,7 +37,7 @@ export default defineConfig(({ command, mode }) => {
       VueRouter({
         extensions: ['.vue', '.md'],
       }), // https://github.com/posva/unplugin-vue-router
-      Layouts(), // https://github.com/JohnCampionJr/vite-plugin-vue-layouts
+      Layouts(),
       VueDevTools(), // https://devtools-next.vuejs.org/
       ServerUrlCopy({
         qrcode: {
@@ -80,7 +80,6 @@ export default defineConfig(({ command, mode }) => {
       ...VitePluginAutoImport(),
       ...VitePluginComponents(),
       ...VitePluginI18n(),
-      ...VitePluginMarkdown(),
       ...VitePluginPWA({ command, mode }),
     ],
     clearScreen: true,

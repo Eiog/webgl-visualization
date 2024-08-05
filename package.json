@@ -28,6 +28,7 @@
     "@formkit/auto-animate": "0.8.2",
     "@morev/vue-transitions": "^3.0.2",
     "@tweakpane/plugin-essentials": "^0.2.1",
+    "@tweenjs/tween.js": "^25.0.0",
     "@unhead/vue": "^1.9.16",
     "@unocss/reset": "^0.61.6",
     "@vueuse/core": "^10.11.0",
@@ -41,6 +42,7 @@
     "nprogress": "^0.2.0",
     "pinia": "^2.2.0",
     "pinia-plugin-persistedstate": "^3.2.1",
+    "pixi.js": "^8.2.6",
     "three": "^0.167.0",
     "tweakpane": "^4.0.4",
     "typed.js": "^2.1.0",
@@ -52,6 +54,7 @@
   "devDependencies": {
     "@antfu/eslint-config": "^2.24.0",
     "@eiog/ts-config": "^0.0.3",
+    "@iconify-json/mage": "^1.1.0",
     "@iconify-json/ri": "^1.1.21",
     "@iconify-json/twemoji": "^1.1.15",
     "@intlify/unplugin-vue-i18n": "^4.0.0",
