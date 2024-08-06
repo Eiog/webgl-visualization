@@ -176,6 +176,7 @@ declare global {
   const useAsyncQueue: typeof import('@vueuse/core')['useAsyncQueue']
   const useAsyncState: typeof import('@vueuse/core')['useAsyncState']
   const useAttrs: typeof import('vue')['useAttrs']
+  const useAudioContext: typeof import('./src/composables/useAudioContext')['useAudioContext']
   const useAutoLoadData: typeof import('./src/composables/useAutoLoadData')['useAutoLoadData']
   const useAutoRatio: typeof import('./src/composables/useAutoRatio')['useAutoRatio']
   const useBScroll: typeof import('./src/composables/useBScroll')['useBScroll']
@@ -556,6 +557,7 @@ declare module 'vue' {
     readonly useAsyncQueue: UnwrapRef<typeof import('@vueuse/core')['useAsyncQueue']>
     readonly useAsyncState: UnwrapRef<typeof import('@vueuse/core')['useAsyncState']>
     readonly useAttrs: UnwrapRef<typeof import('vue')['useAttrs']>
+    readonly useAudioContext: UnwrapRef<typeof import('./src/composables/useAudioContext')['useAudioContext']>
     readonly useAutoLoadData: UnwrapRef<typeof import('./src/composables/useAutoLoadData')['useAutoLoadData']>
     readonly useAutoRatio: UnwrapRef<typeof import('./src/composables/useAutoRatio')['useAutoRatio']>
     readonly useBScroll: UnwrapRef<typeof import('./src/composables/useBScroll')['useBScroll']>
@@ -925,6 +927,7 @@ declare module '@vue/runtime-core' {
     readonly useAsyncQueue: UnwrapRef<typeof import('@vueuse/core')['useAsyncQueue']>
     readonly useAsyncState: UnwrapRef<typeof import('@vueuse/core')['useAsyncState']>
     readonly useAttrs: UnwrapRef<typeof import('vue')['useAttrs']>
+    readonly useAudioContext: UnwrapRef<typeof import('./src/composables/useAudioContext')['useAudioContext']>
     readonly useAutoLoadData: UnwrapRef<typeof import('./src/composables/useAutoLoadData')['useAutoLoadData']>
     readonly useAutoRatio: UnwrapRef<typeof import('./src/composables/useAutoRatio')['useAutoRatio']>
     readonly useBScroll: UnwrapRef<typeof import('./src/composables/useBScroll')['useBScroll']>

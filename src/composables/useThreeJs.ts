@@ -21,9 +21,8 @@ interface FPSGraph extends BladeApi<BladeController<View>> {
   begin: () => void
   end: () => void
 }
-function isMeshType(object?: Object3D): object is Mesh {
-  return object?.type === 'Mesh'
-}
+
+// private
 function createWebGLRender() {
   const renderer = new WebGLRenderer({
     alpha: true,
@@ -83,117 +82,6 @@ function createCameraHelper(scene: Scene, directionalLight: DirectionalLight) {
   return {
     cameraHelper,
   }
-}
-function createStats() {
-  const stats = new Stats()
-  stats.dom.style.position = 'absolute'
-  stats.dom.style.padding = '10px'
-  stats.dom.style.opacity = '0.8'
-  return {
-    stats,
-  }
-}
-// 创建后处理
-function createComposer(renderer: WebGLRenderer, scene: Scene, camera: Camera) {
-  const composer = new EffectComposer(renderer)
-  const renderPass = new RenderPass(scene, camera)
-  composer.addPass(renderPass)
-
-  return {
-    composer,
-    renderPass,
-  }
-}
-// Composer伽马矫正抗锯齿优化
-function optimizeComposer(composer: EffectComposer, width: number, height: number) {
-  // 保持outputEncoding = sRGBEncoding，自定义着色器通道作为参数
-  const effectCopy = new ShaderPass(GammaCorrectionShader)
-  effectCopy.renderToScreen = true
-  composer.addPass(effectCopy)
-  const smaaPass = new SMAAPass(width, height)
-  composer.addPass(smaaPass)
-
-  return {
-    effectCopy,
-    smaaPass,
-  }
-}
-function createOutLinePass(composer: EffectComposer, scene: Scene, camera: Camera, width: number, height: number) {
-  const outlinePass = new OutlinePass(new Vector2(width, height), scene, camera)
-  outlinePass.visibleEdgeColor.set('#00FF00') // 呼吸显示颜色
-  outlinePass.hiddenEdgeColor.set('#00FF00')// 呼吸消失颜色
-  outlinePass.edgeStrength = 5 // 边框的亮度强度
-  outlinePass.edgeGlow = 0.5 // 光晕[0,1]
-  outlinePass.edgeThickness = 1// 边缘宽度
-  outlinePass.pulsePeriod = 2 // 呼吸闪烁速度
-  outlinePass.renderToScreen = true // 设置这个参数的目的是马上将当前的内容输出
-  composer.addPass(outlinePass)
-  function selectedObjectEffect(obj?: Object3D) {
-    const selectedObjects: Object3D[] = []
-    if (obj) {
-      selectedObjects.push(obj)
-    }
-    outlinePass.selectedObjects = selectedObjects
-  }
-  return {
-    outlinePass,
-    selectedObjectEffect,
-  }
-}
-function createLoader(path = '') {
-  const loader = new GLTFLoader().setPath(path)
-  return {
-    loader,
-  }
-}
-function setSkyBox(scene: Scene, paths: string[], fog?: boolean) {
-  if (fog)
-    scene.fog = new Fog(new Color('#a0a0a0'), 500, 2000)
-  const loaderBox = new CubeTextureLoader()
-  const cubeTexture = loaderBox.load(paths)
-  cubeTexture.colorSpace = SRGBColorSpace
-  scene.background = cubeTexture
-}
-function setObjLine(obj: Object3D, lineName = 'line') {
-  if (isMeshType(obj) && obj.isMesh) {
-    const edges = new EdgesGeometry(obj.geometry)
-    const edgesMaterial = new LineBasicMaterial({
-      color: 0x00FFFF,
-    })
-    const line = new LineSegments(edges, edgesMaterial)
-    line.name = lineName
-    obj.add(line)
-    obj.userData.hasLine = true
-  }
-}
-function removeObjLine(obj: Object3D, lineName = 'line') {
-  const line = obj.children.find(f => f.name === lineName)
-  if (line) {
-    obj.remove(line)
-    obj.userData.hasLine = false
-  }
-}
-// 计算鼠标与模型对象相交
-function onIntersectObject(renderer: WebGLRenderer, camera: PerspectiveCamera, obj: Object3D, event: MouseEvent) {
-  // 鼠标设备坐标
-  const mouse = new Vector2(1, 1)
-  // 创建一个射线投射器
-  const raycaster = new Raycaster()
-  // 判断是否相交
-
-  const rect = renderer.domElement.getBoundingClientRect()
-  // 计算鼠标点击位置的归一化设备坐标
-  mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
-  mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
-
-  raycaster.setFromCamera(mouse, camera)
-  // 计算射线与球体的相交情况
-  const intersects = raycaster.intersectObject(obj)
-  // 如果有相交，则说明点击了球体
-  if (intersects.length > 0)
-    return true
-  else
-    return false
 }
 function createAmbientLight(scene: Scene) {
   const ambientLight = new AmbientLight(0xFFFFFF, 0.5)
@@ -263,24 +151,6 @@ function createTweenGroup() {
     group,
   }
 }
-function createBall(geometry: {
-  radius?: number
-  widthSegments?: number
-  heightSegments?: number
-  phiStart?: number
-  phiLength?: number
-  thetaStart?: number
-  thetaLength?: number
-}, parameters?: MeshStandardMaterialParameters) {
-  const ballMat = new MeshStandardMaterial(parameters)
-  const ballGeometry = new SphereGeometry(geometry.radius, geometry.widthSegments, geometry.heightSegments, geometry.phiStart, geometry.phiLength, geometry.thetaStart, geometry.thetaLength)
-  const ballMesh = new Mesh(ballGeometry, ballMat)
-  return {
-    ballMat,
-    ballGeometry,
-    ballMesh,
-  }
-}
 function createTween(group: Group, camera: Camera, controls: OrbitControls) {
   function cameraTween(endPos: { x: number, y: number, z: number }, endTarget: { x: number, y: number, z: number }, duration = 1000) {
     const tween = new Tween({
@@ -329,6 +199,140 @@ function createTween(group: Group, camera: Camera, controls: OrbitControls) {
   return {
     cameraTween,
     cameraTweenLookAtObj,
+  }
+}
+function createStats() {
+  const stats = new Stats()
+  stats.dom.style.position = 'absolute'
+  stats.dom.style.padding = '10px'
+  stats.dom.style.opacity = '0.8'
+  return {
+    stats,
+  }
+}
+// 创建后处理
+function createComposer(renderer: WebGLRenderer, scene: Scene, camera: Camera) {
+  const composer = new EffectComposer(renderer)
+  const renderPass = new RenderPass(scene, camera)
+  composer.addPass(renderPass)
+
+  return {
+    composer,
+    renderPass,
+  }
+}
+// Composer伽马矫正抗锯齿优化
+function optimizeComposer(composer: EffectComposer, width: number, height: number) {
+  // 保持outputEncoding = sRGBEncoding，自定义着色器通道作为参数
+  const effectCopy = new ShaderPass(GammaCorrectionShader)
+  effectCopy.renderToScreen = true
+  composer.addPass(effectCopy)
+  const smaaPass = new SMAAPass(width, height)
+  composer.addPass(smaaPass)
+
+  return {
+    effectCopy,
+    smaaPass,
+  }
+}
+function createOutLinePass(composer: EffectComposer, scene: Scene, camera: Camera, width: number, height: number) {
+  const outlinePass = new OutlinePass(new Vector2(width, height), scene, camera)
+  outlinePass.visibleEdgeColor.set('#00FF00') // 呼吸显示颜色
+  outlinePass.hiddenEdgeColor.set('#00FF00')// 呼吸消失颜色
+  outlinePass.edgeStrength = 5 // 边框的亮度强度
+  outlinePass.edgeGlow = 0.5 // 光晕[0,1]
+  outlinePass.edgeThickness = 1// 边缘宽度
+  outlinePass.pulsePeriod = 2 // 呼吸闪烁速度
+  outlinePass.renderToScreen = true // 设置这个参数的目的是马上将当前的内容输出
+  composer.addPass(outlinePass)
+  function selectedObjectEffect(obj?: Object3D) {
+    const selectedObjects: Object3D[] = []
+    if (obj) {
+      selectedObjects.push(obj)
+    }
+    outlinePass.selectedObjects = selectedObjects
+  }
+  return {
+    outlinePass,
+    selectedObjectEffect,
+  }
+}
+
+// expose
+function isMeshType(object?: Object3D): object is Mesh {
+  return object?.type === 'Mesh'
+}
+function createLoader(path = '') {
+  const loader = new GLTFLoader().setPath(path)
+  return {
+    loader,
+  }
+}
+function setSkyBox(scene: Scene, paths: string[], fog?: boolean) {
+  if (fog)
+    scene.fog = new Fog(new Color('#a0a0a0'), 500, 2000)
+  const loaderBox = new CubeTextureLoader()
+  const cubeTexture = loaderBox.load(paths)
+  cubeTexture.colorSpace = SRGBColorSpace
+  scene.background = cubeTexture
+}
+function setObjLine(obj: Object3D, lineName = 'line') {
+  if (isMeshType(obj) && obj.isMesh) {
+    const edges = new EdgesGeometry(obj.geometry)
+    const edgesMaterial = new LineBasicMaterial({
+      color: 0x00FFFF,
+    })
+    const line = new LineSegments(edges, edgesMaterial)
+    line.name = lineName
+    obj.add(line)
+    obj.userData.hasLine = true
+  }
+}
+function removeObjLine(obj: Object3D, lineName = 'line') {
+  const line = obj.children.find(f => f.name === lineName)
+  if (line) {
+    obj.remove(line)
+    obj.userData.hasLine = false
+  }
+}
+// 计算鼠标与模型对象相交
+function onIntersectObject(renderer: WebGLRenderer, camera: PerspectiveCamera, obj: Object3D, event: MouseEvent) {
+  // 鼠标设备坐标
+  const mouse = new Vector2(1, 1)
+  // 创建一个射线投射器
+  const raycaster = new Raycaster()
+  // 判断是否相交
+
+  const rect = renderer.domElement.getBoundingClientRect()
+  // 计算鼠标点击位置的归一化设备坐标
+  mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1
+  mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1
+
+  raycaster.setFromCamera(mouse, camera)
+  // 计算射线与球体的相交情况
+  const intersects = raycaster.intersectObject(obj)
+  // 如果有相交，则说明点击了球体
+  if (intersects.length > 0)
+    return true
+  else
+    return false
+}
+function createBall(geometry: {
+  radius?: number
+  widthSegments?: number
+  heightSegments?: number
+  phiStart?: number
+  phiLength?: number
+  thetaStart?: number
+  thetaLength?: number
+}, parameters?: MeshStandardMaterialParameters) {
+  const ballMat = new MeshStandardMaterial(parameters)
+  const ballGeometry = new SphereGeometry(geometry.radius, geometry.widthSegments, geometry.heightSegments, geometry.phiStart, geometry.phiLength, geometry.thetaStart, geometry.thetaLength)
+  const ballMesh = new Mesh(ballGeometry, ballMat)
+  return {
+    ballMat,
+    ballGeometry,
+    ballMesh,
   }
 }
 
@@ -492,16 +496,24 @@ export function useThreeJs() {
     pixelRatioWidth,
     pixelRatioHeight,
     renderer,
+    css2Renderer,
+    css3Renderer,
     scene,
     camera,
-    composer,
+    stats,
     useComposer,
+    composer,
+    effectCopy,
+    smaaPass,
+    outlinePass,
     ambientLight,
     directionalLight,
+    cameraHelper,
     axesHelper,
     controls,
     gui,
     fpsGraph,
+    group,
     onRendered(cb: () => void) {
       renderFun = cb
     },
@@ -514,26 +526,19 @@ export function useThreeJs() {
     onBeforeAnimate(cb: () => void) {
       beforeAnimateFun = cb
     },
+    createCss2DObject,
+    createCss3DObject,
+    createCss3DSprite,
+    selectedObjectEffect,
+    cameraTween,
+    cameraTweenLookAtObj,
+    destroy,
+    isMeshType,
     onIntersectObject,
     setSkyBox,
     setObjLine,
     removeObjLine,
-    isMeshType,
     createLoader,
-    effectCopy,
-    smaaPass,
-    outlinePass,
-    selectedObjectEffect,
-    css2Renderer,
-    createCss2DObject,
-    css3Renderer,
-    createCss3DObject,
-    createCss3DSprite,
-    stats,
-    cameraHelper,
-    cameraTween,
-    cameraTweenLookAtObj,
-    group,
     createBall,
   }
 }
