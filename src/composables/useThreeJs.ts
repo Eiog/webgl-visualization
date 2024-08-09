@@ -1,11 +1,11 @@
-import { ACESFilmicToneMapping, AmbientLight, AxesHelper, CameraHelper, Color, CubeTextureLoader, DirectionalLight, DirectionalLightHelper, EdgesGeometry, Fog, LineBasicMaterial, LineSegments, Mesh, MeshStandardMaterial, PerspectiveCamera, Raycaster, SRGBColorSpace, Scene, SphereGeometry, Vector2, Vector3, WebGLRenderer } from 'three'
+import { ACESFilmicToneMapping, AmbientLight, ArrowHelper, AxesHelper, CameraHelper, Color, CubeTextureLoader, DirectionalLight, DirectionalLightHelper, EdgesGeometry, Fog, Group, LineBasicMaterial, LineSegments, LoadingManager, Mesh, MeshStandardMaterial, PerspectiveCamera, Raycaster, SRGBColorSpace, Scene, SphereGeometry, TextureLoader, VSMShadowMap, Vector2, Vector3, WebGLRenderer } from 'three'
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js'
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'
 import { OutlinePass } from 'three/addons/postprocessing/OutlinePass.js'
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js'
 import { GammaCorrectionShader } from 'three/examples/jsm/shaders/GammaCorrectionShader.js'
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js'
-import type { Camera, MeshStandardMaterialParameters, Object3D } from 'three'
+import type { Camera, ColorRepresentation, CubeTexture, MeshStandardMaterialParameters, Object3D } from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { CSS2DObject, CSS2DRenderer } from 'three/addons/renderers/CSS2DRenderer.js'
@@ -15,7 +15,8 @@ import { Pane } from 'tweakpane'
 import * as EssentialsPlugin from '@tweakpane/plugin-essentials'
 import type { BladeController, View } from '@tweakpane/core'
 import Stats from 'three/addons/libs/stats.module.js'
-import { Easing, Group, Tween } from '@tweenjs/tween.js'
+import { Easing, Tween, Group as TweenGroup } from '@tweenjs/tween.js'
+import { Vec3, World } from 'cannon-es'
 
 interface FPSGraph extends BladeApi<BladeController<View>> {
   begin: () => void
@@ -29,6 +30,7 @@ function createWebGLRender() {
     antialias: true,
   })
   renderer.shadowMap.enabled = true // 启用阴影
+  renderer.shadowMap.type = VSMShadowMap
   renderer.toneMapping = ACESFilmicToneMapping
   return {
     renderer,
@@ -78,6 +80,7 @@ function createCamera(fov?: number, aspect?: number, near?: number, far?: number
 }
 function createCameraHelper(scene: Scene, directionalLight: DirectionalLight) {
   const cameraHelper = new CameraHelper(directionalLight.shadow.camera)
+  cameraHelper.visible = false
   scene.add(cameraHelper)
   return {
     cameraHelper,
@@ -94,20 +97,21 @@ function createAmbientLight(scene: Scene) {
 }
 function createDirectionalLight(scene: Scene) {
   const directionalLight = new DirectionalLight('#FFF', 1)
-  directionalLight.position.set(50, 60, 50)
+  directionalLight.position.set(20, 30, 20)
   directionalLight.castShadow = true // 启用阴影
-  directionalLight.shadow.mapSize.set(1024, 1024)
-  directionalLight.shadow.radius = 3
+  directionalLight.shadow.mapSize.set(512 * 2, 512 * 2)
+  directionalLight.shadow.radius = 5
 
-  directionalLight.shadow.camera.left = -20
-  directionalLight.shadow.camera.right = 20
-  directionalLight.shadow.camera.top = 20
-  directionalLight.shadow.camera.bottom = -20
-  directionalLight.shadow.camera.near = 1
-  directionalLight.shadow.camera.far = 120
+  // directionalLight.shadow.camera.left = -5
+  // directionalLight.shadow.camera.right = 5
+  // directionalLight.shadow.camera.top = 5
+  // directionalLight.shadow.camera.bottom = -5
+  // directionalLight.shadow.camera.near = 1
+  // directionalLight.shadow.camera.far = 120
 
   scene.add(directionalLight)
   const dirHelper = new DirectionalLightHelper(directionalLight, 5)
+  dirHelper.visible = false
   scene.add(dirHelper)
 
   return {
@@ -117,7 +121,7 @@ function createDirectionalLight(scene: Scene) {
 }
 function createAxesHelper(scene: Scene) {
 // 添加坐标轴
-  const axesHelper = new AxesHelper(5)
+  const axesHelper = new AxesHelper(10)
   scene.add(axesHelper)
   return {
     axesHelper,
@@ -146,12 +150,21 @@ function createGui() {
   }
 }
 function createTweenGroup() {
-  const group = new Group()
+  const tweenGroup = new TweenGroup()
   return {
-    group,
+    tweenGroup,
   }
 }
-function createTween(group: Group, camera: Camera, controls: OrbitControls) {
+function createTween(group: TweenGroup) {
+  function tween(from: Record<string, any>) {
+    return new Tween(from, group).easing(Easing.Linear.None)
+  }
+
+  return {
+    tween,
+  }
+}
+function createCameraTween(group: TweenGroup, camera: Camera, controls: OrbitControls) {
   function cameraTween(endPos: { x: number, y: number, z: number }, endTarget: { x: number, y: number, z: number }, duration = 1000) {
     const tween = new Tween({
       x: camera.position.x,
@@ -160,7 +173,7 @@ function createTween(group: Group, camera: Camera, controls: OrbitControls) {
       tx: controls.target.x,
       ty: controls.target.y,
       tz: controls.target.z,
-    })
+    }, group)
       .to({
       // 动画结束相机位置坐标
         x: endPos.x,
@@ -181,7 +194,6 @@ function createTween(group: Group, camera: Camera, controls: OrbitControls) {
       })
       .easing(Easing.Quadratic.InOut)
       .start()
-    group.add(tween)
     return {
       tween,
     }
@@ -257,22 +269,54 @@ function createOutLinePass(composer: EffectComposer, scene: Scene, camera: Camer
     selectedObjectEffect,
   }
 }
-
+function createArrowHelperGroup(scene: Scene) {
+  const arrowGroup = new Group()
+  arrowGroup.name = 'arrow-helper-group'
+  function createArrowHelper(dir?: Vector3, origin?: Vector3, length?: number, color?: ColorRepresentation, headLength?: number, headWidth?: number) {
+    const arrowHelper = new ArrowHelper(dir, origin, length, color, headLength, headWidth)
+    arrowGroup.add(arrowHelper)
+    return {
+      arrowHelper,
+      arrowGroup,
+    }
+  }
+  scene.add(arrowGroup)
+  return {
+    arrowGroup,
+    createArrowHelper,
+  }
+}
+function createWorld() {
+  const world = new World({
+    gravity: new Vec3(0, -9.82, 0), // m/s²
+  })
+  return {
+    world,
+  }
+}
 // expose
 function isMeshType(object?: Object3D): object is Mesh {
   return object?.type === 'Mesh'
 }
-function createLoader(path = '') {
-  const loader = new GLTFLoader().setPath(path)
+function createLoadingManager() {
+  const manager = new LoadingManager()
   return {
-    loader,
+    manager,
   }
 }
-function setSkyBox(scene: Scene, paths: string[], fog?: boolean) {
+function createLoader(manager: LoadingManager) {
+  const gltfLoader = new GLTFLoader(manager)
+  const textureLoader = new TextureLoader(manager)
+  const cubeTextureLoader = new CubeTextureLoader(manager)
+  return {
+    gltfLoader,
+    textureLoader,
+    cubeTextureLoader,
+  }
+}
+function setSkyBox(scene: Scene, cubeTexture: CubeTexture, fog?: boolean) {
   if (fog)
     scene.fog = new Fog(new Color('#a0a0a0'), 500, 2000)
-  const loaderBox = new CubeTextureLoader()
-  const cubeTexture = loaderBox.load(paths)
   cubeTexture.colorSpace = SRGBColorSpace
   scene.background = cubeTexture
 }
@@ -335,7 +379,18 @@ function createBall(geometry: {
     ballMesh,
   }
 }
+function lon2xyz(R: number, longitude: number, latitude: number, offset = 1) {
+  let lon = longitude * Math.PI / 180 // 转弧度值
+  const lat = latitude * Math.PI / 180 // 转弧度值
+  lon = -lon // js坐标系z坐标轴对应经度-90度，而不是90度
 
+  // 经纬度坐标转球面坐标计算公式
+  const x = R * offset * Math.cos(lat) * Math.cos(lon)
+  const y = R * offset * Math.sin(lat)
+  const z = R * offset * Math.cos(lat) * Math.sin(lon)
+
+  return new Vector3(x, y, z)
+}
 export function useThreeJs() {
   const domRef = ref<HTMLElement>()
   const { width, height } = useElementSize(domRef)
@@ -346,6 +401,8 @@ export function useThreeJs() {
     pixelRatioWidth: computed(() => pixelRatio * width.value),
     pixelRatioHeight: computed(() => pixelRatio * height.value),
   }
+  const { manager } = createLoadingManager()
+  const { gltfLoader, textureLoader, cubeTextureLoader } = createLoader(manager)
   const { renderer } = createWebGLRender()
   const { css2Renderer, createCss2DObject } = createCss2dRender()
   const { css3Renderer, createCss3DObject, createCss3DSprite } = createCss3dRender()
@@ -357,16 +414,21 @@ export function useThreeJs() {
   const { effectCopy, smaaPass } = optimizeComposer(composer, pixelRatioWidth.value, pixelRatioHeight.value)
   const { outlinePass, selectedObjectEffect } = createOutLinePass(composer, scene, camera, pixelRatioWidth.value, pixelRatioHeight.value)
   const { ambientLight } = createAmbientLight(scene)
-  const { directionalLight } = createDirectionalLight(scene)
+  const { directionalLight, dirHelper } = createDirectionalLight(scene)
   const { cameraHelper } = createCameraHelper(scene, directionalLight)
   const { axesHelper } = createAxesHelper(scene)
   const { controls } = createControls(renderer, camera)
   const { gui, fpsGraph } = createGui()
-  const { group } = createTweenGroup()
-  const { cameraTween, cameraTweenLookAtObj } = createTween(group, camera, controls)
+  const { tweenGroup } = createTweenGroup()
+  const { tween } = createTween(tweenGroup)
+  const { cameraTween, cameraTweenLookAtObj } = createCameraTween(tweenGroup, camera, controls)
+  const { createArrowHelper } = createArrowHelperGroup(scene)
+  const { world } = createWorld()
   gui.addBinding(axesHelper, 'visible', {
     label: 'AxesHelper',
   })
+  gui.addBinding(dirHelper, 'visible')
+  gui.addBinding(cameraHelper, 'visible')
   gui.addBinding(controls, 'autoRotate')
   gui.addBinding(controls, 'autoRotateSpeed', {
     step: 0.1,
@@ -437,6 +499,9 @@ export function useThreeJs() {
     if (beforeAnimateFun) {
       beforeAnimateFun()
     }
+    world.fixedStep()
+    tweenGroup.update()
+
     if (useComposer.value && composer) {
       composer.render()
     }
@@ -445,13 +510,13 @@ export function useThreeJs() {
     }
     css2Renderer.render(scene, camera)
     css3Renderer.render(scene, camera)
-    if (animatedFun) {
-      animatedFun()
-    }
-    group.update()
+
     stats.update()
     controls.update()
     fpsGraph.end()
+    if (animatedFun) {
+      animatedFun()
+    }
     animationId = requestAnimationFrame(animate)
   }
   animate()
@@ -495,6 +560,10 @@ export function useThreeJs() {
     pixelRatio,
     pixelRatioWidth,
     pixelRatioHeight,
+    manager,
+    gltfLoader,
+    textureLoader,
+    cubeTextureLoader,
     renderer,
     css2Renderer,
     css3Renderer,
@@ -513,7 +582,9 @@ export function useThreeJs() {
     controls,
     gui,
     fpsGraph,
-    group,
+    tweenGroup,
+    tween,
+    createArrowHelper,
     onRendered(cb: () => void) {
       renderFun = cb
     },
@@ -538,7 +609,7 @@ export function useThreeJs() {
     setSkyBox,
     setObjLine,
     removeObjLine,
-    createLoader,
     createBall,
+    lon2xyz,
   }
 }

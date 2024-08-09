@@ -41,6 +41,9 @@ importers:
       axios:
         specifier: ^1.7.2
         version: 1.7.2
+      cannon-es:
+        specifier: ^0.20.0
+        version: 0.20.0
       colord:
         specifier: ^2.9.3
         version: 2.9.3
@@ -3145,6 +3148,9 @@ packages:
 
   caniuse-lite@1.0.30001643:
     resolution: {integrity: sha512-ERgWGNleEilSrHM6iUz/zJNSQTP8Mr21wDWpdgvRwcTXGAq6jMtOUPP4dqFPTdKqZ2wKTdtB+uucZ3MRpAUSmg==}
+
+  cannon-es@0.20.0:
+    resolution: {integrity: sha512-eZhWTZIkFOnMAJOgfXJa9+b3kVlvG+FX4mdkpePev/w/rP5V8NRquGyEozcjPfEoXUlb+p7d9SUcmDSn14prOA==}
 
   chai@5.1.1:
     resolution: {integrity: sha512-pT1ZgP8rPNqUgieVaEY+ryQr6Q4HXNg8Ei9UnLUrjN4IA7dvQC5JB+/kxVcPNDHyBcc/26CXPkbNzq3qwrOEKA==}
@@ -11266,6 +11272,8 @@ snapshots:
   camelcase@8.0.0: {}
 
   caniuse-lite@1.0.30001643: {}
+
+  cannon-es@0.20.0: {}
 
   chai@5.1.1:
     dependencies:

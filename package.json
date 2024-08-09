@@ -35,6 +35,7 @@
     "@vueuse/motion": "^2.2.3",
     "animejs": "^3.2.2",
     "axios": "^1.7.2",
+    "cannon-es": "^0.20.0",
     "colord": "^2.9.3",
     "echarts": "^5.5.1",
     "mixte": "^2.0.0",
